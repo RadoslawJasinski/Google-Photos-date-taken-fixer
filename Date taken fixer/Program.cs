@@ -6,6 +6,9 @@ using System.Runtime.Serialization;
 using System;
 using ExifLibrary;
 using System.IO;
+using Newtonsoft.Json;
+using Date_taken_fixer.Models;
+using Date_taken_fixer.Helpers;
 
 namespace Date_taken_fixer
 {
@@ -18,22 +21,40 @@ namespace Date_taken_fixer
 
             try
             {
-                string[] files = Directory.GetFiles(folderPath);
+                if (folderPath == null)
+                    return;
 
-                foreach (string filePath in files)
+                string[] allFilesPath = Directory.GetFiles(folderPath);
+                string[] jsonMetadataPaths = allFilesPath.Where(file => file.EndsWith(".json")).ToArray();
+                string[] mediaFilePaths = allFilesPath.Except(jsonMetadataPaths).ToArray();
+
+                List<string> mediaFilesWithoutMetadata = new();
+
+                foreach (string mediaFilePath in mediaFilePaths)
                 {
-                    if (File.Exists(filePath))
-                    {
-                        DateTime modifiedDate = File.GetLastWriteTime(filePath);
+                    string? jsonMetadataPath = jsonMetadataPaths.FirstOrDefault(x => x.Equals(mediaFilePath + ".json"));
 
-                        File.SetCreationTime(filePath, modifiedDate);
-                        File.SetLastWriteTime(filePath, modifiedDate);
-                        File.SetLastAccessTime(filePath, modifiedDate);
+                    if (jsonMetadataPath != null)
+                    {
+                        var jsonFile = File.ReadAllText(jsonMetadataPath);
+                        PhotoMetadata photoData = JsonConvert.DeserializeObject<PhotoMetadata>(jsonFile) ?? new();
+
+                        if (photoData.PhotoTakenTime != null)
+                        {
+                            long photoTimestamp = photoData.PhotoTakenTime.Timestamp;
+                            var photoTakenDate = DateTimeOffset.FromUnixTimeSeconds(photoTimestamp).DateTime;
+                            File.SetCreationTime(mediaFilePath, photoTakenDate);
+                            File.SetLastWriteTime(mediaFilePath, photoTakenDate);
+                        }
+                        else
+                        {
+                            mediaFilesWithoutMetadata.Add(mediaFilePath);
+                        }
 
                     }
                     else
                     {
-                        Console.WriteLine("File not found.");
+                        mediaFilesWithoutMetadata.Add(mediaFilePath);
                     }
                 }
             }
@@ -41,7 +62,6 @@ namespace Date_taken_fixer
             {
                 Console.WriteLine($"An error occurred: {ex.Message}");
             }
-
         }
 
     }
