@@ -1,12 +1,4 @@
-﻿using static System.Net.Mime.MediaTypeNames;
-using System.Text;
-using System.Drawing;
-using System.Drawing.Imaging;
-using System.Runtime.Serialization;
-using System;
-using ExifLibrary;
-using System.IO;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using Date_taken_fixer.Models;
 using Date_taken_fixer.Helpers;
 
@@ -16,7 +8,7 @@ namespace Date_taken_fixer
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Podaj sciezke zdjec:");
+            Console.WriteLine("Enter the path of the photos:");
             string? folderPath = Console.ReadLine();
 
             try
@@ -50,6 +42,13 @@ namespace Date_taken_fixer
                         {
                             mediaFilesWithoutMetadata.Add(mediaFilePath);
                         }
+
+                        double newLatitude = photoData.GeoData != null ? photoData.GeoData.Latitude : 0;
+                        double newLongitude = photoData.GeoData != null ? photoData.GeoData.Longitude : 0;
+                        double newAltitude = photoData.GeoData != null ? photoData.GeoData.Altitude : 0;
+
+                        var exifWriter = new ExifWriter();
+                        exifWriter.Write(mediaFilePath, newLatitude, newLongitude, newAltitude);
 
                     }
                     else
