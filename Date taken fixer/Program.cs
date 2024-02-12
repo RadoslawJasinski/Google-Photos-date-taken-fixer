@@ -8,15 +8,60 @@ namespace Date_taken_fixer
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Enter the path of the photos:");
-            string? folderPath = Console.ReadLine();
+            string? folderPathWithMedia = string.Empty;
+            string? enteredPath = string.Empty;
+            bool foundMediaFiles = false;
+
+            do
+            {
+                Console.Clear();
+                Console.WriteLine("Enter the path of the Takeout folder:");
+                enteredPath = Console.ReadLine();
+
+                if (string.IsNullOrWhiteSpace(enteredPath))
+                {
+                    Console.Clear();
+                    Console.WriteLine("Invalid input. Please enter a valid folder path. Press any key to continue.");
+                    Console.ReadKey();
+                }
+                else
+                {
+                    var subfolders = Directory.GetDirectories(enteredPath);
+                    string[] extensions = new[] { ".jpg", "jpeg", ".tiff", ".bmp", ".mp4" };
+
+                    if (subfolders.Count() == 0)
+                    {
+                        foundMediaFiles = Directory.EnumerateFiles(enteredPath, "*.*", SearchOption.AllDirectories)
+                                                .Any(file => extensions.Any(ext => string.Equals(Path.GetExtension(file), ext, StringComparison.OrdinalIgnoreCase)));
+
+                        if (foundMediaFiles)
+                            folderPathWithMedia = enteredPath;
+                        else
+                            Console.WriteLine("Files not found.");
+                    }
+                    else
+                    {
+                        foreach (string subfolder in subfolders)
+                        {
+                            foundMediaFiles = Directory.EnumerateFiles(subfolder, "*.*", SearchOption.AllDirectories)
+                                                        .Any(file => extensions.Any(ext => string.Equals(Path.GetExtension(file), ext, StringComparison.OrdinalIgnoreCase)));
+
+                            if (foundMediaFiles)
+                            {
+                                folderPathWithMedia = subfolder;
+                                break;
+                            }
+                            else
+                                Console.WriteLine("Files not found.");
+                        }
+                    }
+                }
+            }
+            while (foundMediaFiles == false);
 
             try
             {
-                if (folderPath == null)
-                    return;
-
-                string[] allFilesPath = Directory.GetFiles(folderPath);
+                string[] allFilesPath = Directory.GetFiles(folderPathWithMedia);
                 string[] jsonMetadataPaths = allFilesPath.Where(file => file.EndsWith(".json")).ToArray();
                 string[] mediaFilePaths = allFilesPath.Except(jsonMetadataPaths).ToArray();
 
