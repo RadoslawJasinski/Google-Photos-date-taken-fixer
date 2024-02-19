@@ -3,6 +3,9 @@ using Date_taken_fixer.Models;
 using Date_taken_fixer.Helpers;
 using System.Globalization;
 using System.Threading.Channels;
+using System.Security.Principal;
+using System.IO.IsolatedStorage;
+using System.Drawing.Imaging;
 
 namespace Date_taken_fixer
 {
@@ -107,21 +110,23 @@ namespace Date_taken_fixer
                                 mediaFilesWithoutMetadata.Add(mediaFilePath);
                             }
 
-                            double newLatitude = photoData.GeoData != null ? photoData.GeoData.Latitude : 0;
-                            double newLongitude = photoData.GeoData != null ? photoData.GeoData.Longitude : 0;
-                            double newAltitude = photoData.GeoData != null ? photoData.GeoData.Altitude : 0;
-
                             try
                             {
-                                var exifWriter = new ExifWriter();
-                                exifWriter.Write(mediaFilePath, newLatitude, newLongitude, newAltitude);
+                                if (!mediaFilePath.EndsWith(".mp4"))
+                                {
+                                    double newLatitude = photoData.GeoData != null ? photoData.GeoData.Latitude : 0;
+                                    double newLongitude = photoData.GeoData != null ? photoData.GeoData.Longitude : 0;
+                                    double newAltitude = photoData.GeoData != null ? photoData.GeoData.Altitude : 0;
+
+                                    var exifWriter = new ExifWriter();
+                                    exifWriter.Write(mediaFilePath, newLatitude, newLongitude, newAltitude);
+                                }
                             }
-                            catch
+                            catch(Exception ex)
                             {
-                                //TODO: Add GPS support for movies
+                                Console.WriteLine($"An error occurred {mediaFilePath + ex.Message + ex.InnerException}");
                             }
-
-
+                            //TODO: Search metadata in files like 2015-05-05.jpg(1).json
                         }
                         else
                         {
@@ -129,7 +134,6 @@ namespace Date_taken_fixer
                         }
                         counter++;
                     }
-
                 }
                 Console.Clear();
                 if (mediaFilesWithoutMetadata.Count > 0)
@@ -150,6 +154,5 @@ namespace Date_taken_fixer
                 Console.WriteLine($"An error occurred: {ex.Message}");
             }
         }
-
     }
 }
