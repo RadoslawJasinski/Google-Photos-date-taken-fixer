@@ -32,7 +32,7 @@ namespace Date_taken_fixer.Helpers
             file.Properties.Set(ExifTag.GPSLongitude, (float)longitudeDMS.Degrees, (float)longitudeDMS.Minutes, (float)longitudeDMS.Seconds);
             file.Properties.Set(ExifTag.GPSLongitudeRef, longitudeDMS.Direction == 'W' ? GPSLongitudeRef.West : GPSLongitudeRef.East);
 
-            file.Properties.Set(ExifTag.GPSAltitude, newAltitude);
+            file.Properties.Set(ExifTag.GPSAltitude, Math.Abs(newAltitude));
             file.Properties.Set(ExifTag.GPSAltitudeRef, newAltitude > 0 ? GPSAltitudeRef.AboveSeaLevel : GPSAltitudeRef.BelowSeaLevel);
 
             file.Save(filePath);
