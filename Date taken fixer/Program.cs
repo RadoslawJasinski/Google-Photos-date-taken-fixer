@@ -93,9 +93,25 @@ namespace Date_taken_fixer
                         Console.WriteLine($"{counter}/{quantityOfMediaFiles}");
                         string? jsonMetadataPath = jsonMetadataPaths.FirstOrDefault(x => x.Equals(mediaFilePath + ".json"));
 
+                        if (jsonMetadataPath == null)
+                        {
+                            var searchResultTuple = CheckMatchingJsonFileInBrackets(mediaFilePath);
+                            bool jsonFileExist = searchResultTuple.Item1;
+
+                            if (jsonFileExist)
+                            {
+                                jsonMetadataPath = searchResultTuple.Item2;
+                            }
+                            else
+                            {
+                                string newMediaFileName = RemoveAfterDashKeepingExtension(mediaFilePath);
+                                jsonMetadataPath = jsonMetadataPaths.FirstOrDefault(x => x.Equals(newMediaFileName + ".json"));
+                            }
+                        }
+
                         if (jsonMetadataPath != null)
                         {
-                            var jsonFile = File.ReadAllText(jsonMetadataPath);
+                            string? jsonFile = File.ReadAllText(jsonMetadataPath);
                             PhotoMetadata photoData = JsonConvert.DeserializeObject<PhotoMetadata>(jsonFile) ?? new();
 
                             if (photoData.PhotoTakenTime != null)
@@ -110,23 +126,15 @@ namespace Date_taken_fixer
                                 mediaFilesWithoutMetadata.Add(mediaFilePath);
                             }
 
-                            try
+                            if (!mediaFilePath.EndsWith(".mp4"))
                             {
-                                if (!mediaFilePath.EndsWith(".mp4"))
-                                {
-                                    double newLatitude = photoData.GeoData != null ? photoData.GeoData.Latitude : 0;
-                                    double newLongitude = photoData.GeoData != null ? photoData.GeoData.Longitude : 0;
-                                    double newAltitude = photoData.GeoData != null ? photoData.GeoData.Altitude : 0;
+                                double newLatitude = photoData.GeoData != null ? photoData.GeoData.Latitude : 0;
+                                double newLongitude = photoData.GeoData != null ? photoData.GeoData.Longitude : 0;
+                                double newAltitude = photoData.GeoData != null ? photoData.GeoData.Altitude : 0;
 
-                                    var exifWriter = new ExifWriter();
-                                    exifWriter.Write(mediaFilePath, newLatitude, newLongitude, newAltitude);
-                                }
+                                var exifWriter = new ExifWriter();
+                                exifWriter.Write(mediaFilePath, newLatitude, newLongitude, newAltitude);
                             }
-                            catch(Exception ex)
-                            {
-                                Console.WriteLine($"An error occurred {mediaFilePath + ex.Message + ex.InnerException}");
-                            }
-                            //TODO: Search metadata in files like 2015-05-05.jpg(1).json
                         }
                         else
                         {
@@ -152,6 +160,51 @@ namespace Date_taken_fixer
             catch (Exception ex)
             {
                 Console.WriteLine($"An error occurred: {ex.Message}");
+            }
+        }
+
+        static Tuple<bool, string> CheckMatchingJsonFileInBrackets(string jpgFileName)
+        {
+            jpgFileName = jpgFileName.ToLower();
+
+            if (!jpgFileName.EndsWith(").jpg"))
+            {
+                return Tuple.Create(false, string.Empty);
+            }
+
+            int openBracketIndex = jpgFileName.LastIndexOf('(');
+            int closeBracketIndex = jpgFileName.LastIndexOf(')');
+
+            if (openBracketIndex == -1 || closeBracketIndex == -1 || closeBracketIndex <= openBracketIndex)
+            {
+                return Tuple.Create(false, string.Empty);
+            }
+
+            string numberInBracket = jpgFileName.Substring(openBracketIndex + 1, closeBracketIndex - openBracketIndex - 1);
+            string extension = Path.GetExtension(jpgFileName);
+
+            string jsonFileName = jpgFileName.Replace($"({numberInBracket}){extension}", $"{extension}({numberInBracket}).json");
+
+            if (File.Exists(jsonFileName))
+            {
+                return Tuple.Create(true, jsonFileName);
+            }
+
+            return Tuple.Create(false, string.Empty);
+        }
+
+        static string RemoveAfterDashKeepingExtension(string fileName)
+        {
+            int dashIndex = fileName.IndexOf('-');
+            if (dashIndex != -1)
+            {
+                string nameWithoutExtension = fileName.Substring(0, dashIndex);
+                string extension = Path.GetExtension(fileName);
+                return nameWithoutExtension + extension;
+            }
+            else
+            {
+                return fileName;
             }
         }
     }
