@@ -93,6 +93,28 @@ namespace Date_taken_fixer
                         Console.WriteLine($"{counter}/{quantityOfMediaFiles}");
                         string? jsonMetadataPath = jsonMetadataPaths.FirstOrDefault(x => x.Equals(mediaFilePath + ".json"));
 
+                        if(jsonMetadataPath == null)
+                        {
+                            string mediaFullPathWithoutExtension = mediaFilePath.Substring(0, mediaFilePath.LastIndexOf("."));
+                            jsonMetadataPath = jsonMetadataPaths.FirstOrDefault(x => x.Equals(mediaFullPathWithoutExtension + ".json"));
+                        }
+
+                        if (jsonMetadataPath == null)
+                        {
+                            string mediaFileExtension = Path.GetExtension(mediaFilePath);
+                            if (mediaFilePath.Contains("-"))
+                            {
+                                string mediaFullPathWithoutEditText = mediaFilePath.Substring(0, mediaFilePath.LastIndexOf("-")) + mediaFileExtension;
+                                jsonMetadataPath = jsonMetadataPaths.FirstOrDefault(x => x.Equals(mediaFullPathWithoutEditText + ".json"));
+
+                                if (jsonMetadataPath == null)
+                                {
+                                    mediaFullPathWithoutEditText = mediaFilePath.Substring(0, mediaFilePath.LastIndexOf("-"));
+                                    jsonMetadataPath = jsonMetadataPaths.FirstOrDefault(x => x.Equals(mediaFullPathWithoutEditText + ".json"));
+                                }
+                            }
+                        }
+
                         if (jsonMetadataPath == null)
                         {
                             var searchResultTuple = CheckMatchingJsonFileInBrackets(mediaFilePath);
